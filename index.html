@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FamilyFrame TV — Bridge probe</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.4em; margin-bottom: 0; }
+    .sub { color: #888; font-size: 0.85em; margin-top: 4px; }
+    .target {
+      background: #1e1e1e10;
+      border: 1px solid #8884;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      font-family: monospace;
+      font-size: 0.9em;
+      word-break: break-all;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1em;
+      border-radius: 8px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      margin: 8px 0;
+    }
+    button:active { background: #1d4ed8; }
+    button:disabled { background: #888; cursor: not-allowed; }
+    .log {
+      margin-top: 16px;
+      padding: 12px;
+      background: #1e1e1e08;
+      border: 1px solid #8884;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.85em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 80px;
+    }
+    .ok { color: #16a34a; }
+    .err { color: #dc2626; }
+    .warn { color: #d97706; }
+  </style>
+</head>
+<body>
+  <h1>FamilyFrame TV — Bridge probe</h1>
+  <p class="sub">
+    Проверяем, доходит ли POST с этой страницы (https GitHub Pages)
+    на HTTP-LAN-IP телевизора. Если работает — bridge-архитектура для Google Photos жизнеспособна.
+  </p>
+
+  <div id="target" class="target">Цель: <span id="target-url">не задана (нет ?ip=&port= в URL)</span></div>
+
+  <button id="btn-test" disabled>Test POST → TV</button>
+
+  <div id="log" class="log">Готов. Нажмите кнопку.</div>
+
+  <p class="sub">
+    Открыт через QR с ТВ. Если браузер спросит разрешение
+    «разрешить доступ к локальной сети» — нажмите «Разрешить».
+  </p>
+
+  <script>
+    'use strict';
+
+    const params = new URLSearchParams(location.search);
+    const ip = params.get('ip');
+    const port = params.get('port') || '8765';
+    const nonce = params.get('nonce') || Math.random().toString(36).slice(2);
+
+    const targetUrl = ip ? `http://${ip}:${port}/probe` : null;
+    document.getElementById('target-url').textContent = targetUrl || 'не задана (нет ?ip=&port= в URL)';
+    const btn = document.getElementById('btn-test');
+    const logEl = document.getElementById('log');
+
+    function log(msg, cls) {
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      const t = new Date().toLocaleTimeString();
+      line.textContent = `[${t}] ${msg}`;
+      logEl.appendChild(line);
+    }
+
+    if (targetUrl) {
+      btn.disabled = false;
+      log(`Цель: ${targetUrl}`);
+      log(`UserAgent: ${navigator.userAgent.slice(0, 80)}…`);
+    } else {
+      log('⚠ URL без параметров ?ip=&port=. Откройте через QR на ТВ.', 'warn');
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      log('→ POST отправляю…');
+      const t0 = performance.now();
+      try {
+        const resp = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'probe',
+            nonce,
+            ua: navigator.userAgent,
+            ts: Date.now()
+          })
+        });
+        const dt = Math.round(performance.now() - t0);
+        const body = await resp.text().catch(() => '(empty)');
+        if (resp.ok) {
+          log(`✅ Успех за ${dt} мс. HTTP ${resp.status}. Ответ ТВ: ${body}`, 'ok');
+        } else {
+          log(`⚠ HTTP ${resp.status} (${dt} мс). Тело: ${body}`, 'warn');
+        }
+      } catch (e) {
+        const dt = Math.round(performance.now() - t0);
+        log(`❌ Ошибка за ${dt} мс: ${e.name}: ${e.message}`, 'err');
+        log('Возможные причины: (1) браузер заблокировал private network access — посмотрите наверху, не появился ли permission prompt; (2) ТВ не в той же Wi-Fi; (3) Ktor не отвечает; (4) firewall на ТВ.', 'warn');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
