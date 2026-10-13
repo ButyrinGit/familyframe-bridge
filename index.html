@@ -60,11 +60,13 @@
   <p class="sub">
     Проверяем, доходит ли POST с этой страницы (https GitHub Pages)
     на HTTP-LAN-IP телевизора. Если работает — bridge-архитектура для Google Photos жизнеспособна.
+    Если «Test POST» не срабатывает (например, в Firefox), попробуйте «Открыть ТВ переходом».
   </p>
 
   <div id="target" class="target">Цель: <span id="target-url">не задана (нет ?ip=&port= в URL)</span></div>
 
   <button id="btn-test" disabled>Test POST → TV</button>
+  <button id="btn-nav">Открыть ТВ переходом (без fetch)</button>
 
   <div id="log" class="log">Готов. Нажмите кнопку.</div>
 
@@ -101,6 +103,15 @@
     } else {
       log('⚠ URL без параметров ?ip=&port=. Откройте через QR на ТВ.', 'warn');
     }
+
+    document.getElementById('btn-nav').addEventListener('click', () => {
+      if (!ip) {
+        log('❌ Нет параметра ?ip= в URL. Откройте через QR на ТВ.', 'err');
+        return;
+      }
+      log('→ переход на ТВ…');
+      location.href = `http://${ip}:${port}/nav?nonce=${encodeURIComponent(nonce)}&ua=${encodeURIComponent(navigator.userAgent)}`;
+    });
 
     btn.addEventListener('click', async () => {
       btn.disabled = true;
