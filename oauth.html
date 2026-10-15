@@ -57,10 +57,16 @@
 </head>
 <body>
   <h1>FamilyFrame TV — Google OAuth</h1>
-  <p class="sub">
+  <p class="sub" id="intro-photos">
     Войдите в Google и отметьте фотографии, которые хотите показать на телевизоре.
     Приложение получит только отмеченные снимки и не хранит вход в Google: доступ действует
     лишь на время этой загрузки. Телефон и телевизор должны быть в одной Wi-Fi.
+    Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
+  </p>
+  <p class="sub" id="intro-drive" hidden>
+    Войдите в Google и разрешите приложению читать файлы вашего Google Диска — так телевизор
+    сможет показывать фотографии из ваших папок. Приложение ничего не меняет и не удаляет на Диске.
+    Телефон и телевизор должны быть в одной Wi-Fi.
     Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
   </p>
 
@@ -74,9 +80,16 @@
     'use strict';
 
     const REDIRECT_URI = 'https://butyringit.github.io/familyframe-bridge/oauth.html';
-    const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+    // Какой доступ просить: параметр `sc` из QR на ТВ (photos — Google Фото, drive — Google Диск).
+    const SCOPES = {
+      photos: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+      drive: 'https://www.googleapis.com/auth/drive.readonly'
+    };
 
     const p = new URLSearchParams(location.search);
+    const sc = SCOPES[p.get('sc')] ? p.get('sc') : 'photos';
+    document.getElementById('intro-photos').hidden = sc !== 'photos';
+    document.getElementById('intro-drive').hidden = sc !== 'drive';
     const logEl = document.getElementById('log');
     const buttonsEl = document.getElementById('buttons');
 
@@ -110,7 +123,7 @@
       return atob(b);
     }
 
-    const HINTS = 'Возможные причины: (1) браузер заблокировал доступ к локальной сети — посмотрите, не появился ли запрос разрешения; (2) ТВ не в той же Wi-Fi; (3) на телевизоре не открыт экран входа в Google Фото (или истекло время QR).';
+    const HINTS = 'Возможные причины: (1) браузер заблокировал доступ к локальной сети — посмотрите, не появился ли запрос разрешения; (2) ТВ не в той же Wi-Fi; (3) на телевизоре не открыт экран входа в Google (или истекло время QR).';
 
     function decodeState() {
       try {
@@ -170,7 +183,7 @@
             client_id: cid,
             redirect_uri: REDIRECT_URI,
             response_type: 'code',
-            scope: SCOPE,
+            scope: SCOPES[sc],
             access_type: 'offline',
             prompt: 'consent',
             code_challenge: cc,
