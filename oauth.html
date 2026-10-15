@@ -58,8 +58,9 @@
 <body>
   <h1>FamilyFrame TV — Google OAuth</h1>
   <p class="sub">
-    Шаг 1 — войти в Google и разрешить доступ к Google Фото.
-    Шаг 2 — передать код телевизору.
+    Войдите в Google и отметьте фотографии, которые хотите показать на телевизоре.
+    Приложение получит только отмеченные снимки и не хранит вход в Google: доступ действует
+    лишь на время этой загрузки. Телефон и телевизор должны быть в одной Wi-Fi.
     Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
   </p>
 
@@ -109,66 +110,58 @@
       return atob(b);
     }
 
-    const HINTS = 'Возможные причины: (1) браузер заблокировал доступ к локальной сети — посмотрите, не появился ли запрос разрешения; (2) ТВ не в той же Wi-Fi; (3) приложение на ТВ не на экране пробы.';
+    const HINTS = 'Возможные причины: (1) браузер заблокировал доступ к локальной сети — посмотрите, не появился ли запрос разрешения; (2) ТВ не в той же Wi-Fi; (3) на телевизоре не открыт экран входа в Google Фото (или истекло время QR).';
+
+    function decodeState() {
+      try {
+        const st = JSON.parse(b64urlDecode(p.get('state') || ''));
+        if (!st.ip || !st.st) return null;
+        return { ip: st.ip, port: st.port || '8765', st: st.st };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function tvUrl(s, params) {
+      return `http://${s.ip}:${s.port}/oauth?state=${encodeURIComponent(s.st)}&${params}`;
+    }
 
     if (p.has('error')) {
       // A) Google вернул ошибку
       let m = `Google вернул ошибку: ${p.get('error')}`;
       if (p.get('error_description')) m += ` (${p.get('error_description')})`;
       log(m, 'err');
+      const s = decodeState();
+      if (s) {
+        history.replaceState(null, '', location.pathname);
+        location.replace(tvUrl(s, `error=${encodeURIComponent(p.get('error'))}`));
+      }
     } else if (p.has('code')) {
       // B) Возврат от Google
       const code = p.get('code');
-      const scope = p.get('scope') || '';
-      let ip, port;
-      try {
-        const st = JSON.parse(b64urlDecode(p.get('state') || ''));
-        ip = st.ip;
-        port = st.port || '8765';
-        if (!ip) throw new Error('no ip');
-      } catch (e) {
+      const s = decodeState();
+      if (!s) {
         log('Неверный state — откройте страницу заново через QR', 'err');
-      }
-      if (ip) {
+      } else {
         // убрать код из адресной строки
         history.replaceState(null, '', location.pathname);
-        const url = `http://${ip}:${port}/oauth`;
-        showTarget(url);
-        log(`Код от Google получен (${code.length} символов)`, 'ok');
-        log(`scope: ${scope}`);
-
-        const btnPost = addButton('Передать на ТВ (POST)', async () => {
-          btnPost.disabled = true;
-          log('→ POST отправляю…');
-          const t0 = performance.now();
-          try {
-            const resp = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code, scope })
-            });
-            const dt = Math.round(performance.now() - t0);
-            const body = await resp.text().catch(() => '(empty)');
-            log(`HTTP ${resp.status} за ${dt} мс. Ответ ТВ:\n${body}`, resp.ok ? 'ok' : 'err');
-          } catch (e) {
-            const dt = Math.round(performance.now() - t0);
-            log(`❌ Ошибка за ${dt} мс: ${e.name}: ${e.message}`, 'err');
-            log(HINTS, 'warn');
-          } finally {
-            btnPost.disabled = false;
-          }
+        showTarget(`http://${s.ip}:${s.port}/oauth`);
+        const go = () => location.replace(tvUrl(s, `code=${encodeURIComponent(code)}`));
+        addButton('Передать на ТВ ещё раз', () => {
+          log('→ Передаю код телевизору…');
+          go();
         });
-        addButton('Передать на ТВ (переход)', () => {
-          location.href = `http://${ip}:${port}/oauth?code=${encodeURIComponent(code)}&scope=${encodeURIComponent(scope)}`;
-        });
+        log('Передаю код телевизору…', 'ok');
+        go();
       }
     } else {
       // C) Открыто с QR на ТВ
       const ip = p.get('ip');
-      const port = p.get('port') || '8765';
+      const port = p.get('port');
       const cid = p.get('cid');
       const cc = p.get('cc');
-      if (!ip || !cid || !cc) {
+      const st = p.get('st');
+      if (!ip || !port || !cid || !cc || !st) {
         log('Откройте страницу через QR на телевизоре', 'err');
       } else {
         showTarget(`http://${ip}:${port}/oauth`);
@@ -182,7 +175,7 @@
             prompt: 'consent',
             code_challenge: cc,
             code_challenge_method: 'S256',
-            state: b64urlEncode(JSON.stringify({ ip, port }))
+            state: b64urlEncode(JSON.stringify({ ip, port, st }))
           });
           location.href = `https://accounts.google.com/o/oauth2/v2/auth?${q.toString()}`;
         });
