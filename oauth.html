@@ -15,6 +15,7 @@
     }
     h1 { font-size: 1.4em; margin-bottom: 0; }
     .sub { color: #888; font-size: 0.85em; margin-top: 4px; }
+    .status { font-size: 1.15em; font-weight: 600; margin: 20px 0; }
     .target {
       background: #1e1e1e10;
       border: 1px solid #8884;
@@ -70,6 +71,8 @@
     Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
   </p>
 
+  <p class="status" id="status" hidden></p>
+
   <div id="target" class="target" hidden>Цель: <span id="target-url"></span></div>
 
   <div id="buttons"></div>
@@ -123,6 +126,8 @@
       return atob(b);
     }
 
+    // Через сколько после возврата от Google показать запасную кнопку, если ТВ так и не ответил.
+    const FALLBACK_MS = 10000;
     const HINTS = 'Возможные причины: (1) браузер заблокировал доступ к локальной сети — посмотрите, не появился ли запрос разрешения; (2) ТВ не в той же Wi-Fi; (3) на телевизоре не открыт экран входа в Google (или истекло время QR).';
 
     function decodeState() {
@@ -150,7 +155,10 @@
         location.replace(tvUrl(s, `error=${encodeURIComponent(p.get('error'))}`));
       }
     } else if (p.has('code')) {
-      // B) Возврат от Google
+      // B) Возврат от Google: сразу переходим на ТВ. Пока телевизор меняет код на токены, браузер
+      // продолжает показывать эту страницу — поэтому на ней только «Передаю…». Запасная кнопка
+      // появляется, лишь если за FALLBACK_MS переход так и не случился (ТВ не ответил, другая Wi-Fi,
+      // браузер не пустил в локальную сеть).
       const code = p.get('code');
       const s = decodeState();
       if (!s) {
@@ -158,13 +166,22 @@
       } else {
         // убрать код из адресной строки
         history.replaceState(null, '', location.pathname);
-        showTarget(`http://${s.ip}:${s.port}/oauth`);
+        document.getElementById('intro-photos').hidden = true;
+        document.getElementById('intro-drive').hidden = true;
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = 'Передаю на телевизор… Не закрывайте страницу.';
+        statusEl.hidden = false;
         const go = () => location.replace(tvUrl(s, `code=${encodeURIComponent(code)}`));
-        addButton('Передать на ТВ ещё раз', () => {
-          log('→ Передаю код телевизору…');
-          go();
-        });
         log('Передаю код телевизору…', 'ok');
+        setTimeout(() => {
+          statusEl.textContent = 'Телевизор не ответил.';
+          showTarget(`http://${s.ip}:${s.port}/oauth`);
+          log(HINTS, 'warn');
+          addButton('Передать на ТВ ещё раз', () => {
+            log('→ Передаю код телевизору…');
+            go();
+          });
+        }, FALLBACK_MS);
         go();
       }
     } else {
