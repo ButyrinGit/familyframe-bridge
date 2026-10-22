@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверка выбора папки — FamilyFrame TV</title>
+  <!-- TV.47: пробник — умеет ли браузер телефона выбрать целую папку (webkitdirectory).
+       Ничего никуда не отправляет: только считает выбранные файлы на самом телефоне. -->
+  <style>
+    :root { --bg:#12141c; --card:#1d2130; --text:#f2f4f8; --muted:#aab1c3; --accent:#3b6cf6; --ok:#39b37a; --err:#e5646b; --radius:14px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 440px; margin: 0 auto; padding: 24px 20px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: var(--muted); line-height: 1.5; margin: 0 0 16px; }
+    label.btn { display: block; text-align: center; padding: 16px; margin: 0 0 12px; border-radius: var(--radius);
+      background: var(--accent); font-size: 18px; font-weight: 600; cursor: pointer; }
+    label.btn.alt { background: var(--card); }
+    input[type=file] { display: none; }
+    #result { background: var(--card); border-radius: var(--radius); padding: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .ok { color: var(--ok); } .err { color: var(--err); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Проверка: выбор папки</h1>
+  <p>Нажмите «Выбрать папку» и выберите папку с фото. Страница только посчитает файлы — ничего не отправляется.</p>
+  <label class="btn">Выбрать папку<input id="dir" type="file" webkitdirectory multiple></label>
+  <label class="btn alt">Выбрать фото (как сейчас)<input id="files" type="file" accept="image/*" multiple></label>
+  <div id="result">Пока ничего не выбрано.</div>
+</main>
+<script>
+  const out = document.getElementById('result');
+  const dirSupported = 'webkitdirectory' in document.createElement('input');
+  function report(kind, list) {
+    const files = Array.from(list);
+    const photos = files.filter(f => f.type.startsWith('image/'));
+    const folders = new Set(files.map(f => (f.webkitRelativePath || '').split('/').slice(0, -1).join('/')).filter(Boolean));
+    const ok = kind === 'папка' ? files.length > 0 && folders.size > 0 : files.length > 0;
+    out.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = ok ? 'ok' : 'err';
+    head.textContent = ok ? `✓ Выбрано (${kind}): файлов ${files.length}, из них фото ${photos.length}`
+                          : `✗ ${kind}: выбор не сработал или пуст (файлов ${files.length})`;
+    out.appendChild(head);
+    const details = document.createElement('div');
+    details.textContent = `Папок: ${folders.size}${folders.size ? ' (' + Array.from(folders).slice(0, 3).join(', ') + ')' : ''}\n` +
+      `Пример: ${files[0] ? (files[0].webkitRelativePath || files[0].name) : '—'}\n` +
+      `Поддержка выбора папки: ${dirSupported ? 'да' : 'нет'}\nБраузер: ${navigator.userAgent}`;
+    out.appendChild(details);
+  }
+  document.getElementById('dir').addEventListener('change', e => report('папка', e.target.files));
+  document.getElementById('files').addEventListener('change', e => report('фото', e.target.files));
+</script>
+</body>
+</html>

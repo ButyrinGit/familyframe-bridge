@@ -3,81 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FamilyFrame TV — Google OAuth</title>
+  <meta name="theme-color" content="#12141c" />
+  <title>Вход в Google — FamilyFrame TV</title>
   <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 24px 16px;
-      line-height: 1.5;
-    }
-    h1 { font-size: 1.4em; margin-bottom: 0; }
-    .sub { color: #888; font-size: 0.85em; margin-top: 4px; }
-    .status { font-size: 1.15em; font-weight: 600; margin: 20px 0; }
-    .target {
-      background: #1e1e1e10;
-      border: 1px solid #8884;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 16px 0;
-      font-family: monospace;
-      font-size: 0.9em;
-      word-break: break-all;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      font-size: 1.1em;
-      border-radius: 8px;
-      border: none;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-      margin: 8px 0;
-    }
-    button:active { background: #1d4ed8; }
-    button:disabled { background: #888; cursor: not-allowed; }
-    .log {
-      margin-top: 16px;
-      padding: 12px;
-      background: #1e1e1e08;
-      border: 1px solid #8884;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 0.85em;
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-height: 80px;
-    }
-    .ok { color: #16a34a; }
-    .err { color: #dc2626; }
-    .warn { color: #d97706; }
+  /* Общий стиль страниц телефона (TV.46) — держать одинаковым в: familyframe-bridge/oauth.html, assets/public_link.html, assets/guest.html */
+  :root {
+    --bg: #12141c; --card: #1d2130; --text: #f2f4f8; --muted: #aab1c3;
+    --accent: #3b6cf6; --accent-pressed: #2f59d0; --ok: #39b37a; --err: #e5646b;
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5; overflow-wrap: anywhere;
+  }
+  .wrap { width: 100%; max-width: 440px; margin: 0 auto; padding: 24px 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; font-size: 17px; font-weight: 600; }
+  .brand svg { width: 36px; height: 36px; flex: none; }
+  h1 { font-size: 24px; font-weight: 600; line-height: 1.25; margin: 0 0 8px; }
+  .lead { color: var(--muted); font-size: 16px; margin: 0 0 24px; }
+  .btn {
+    appearance: none; border: none; outline: none; cursor: pointer;
+    display: block; width: 100%; min-height: 56px; padding: 0 20px; margin: 0 0 12px;
+    background: var(--accent); color: #fff; font: inherit; font-size: 18px; font-weight: 600;
+    border-radius: var(--radius);
+  }
+  .btn:active { background: var(--accent-pressed); }
+  .btn:disabled { background: var(--card); color: var(--muted); cursor: not-allowed; }
+  .btn.secondary { background: var(--card); color: var(--text); }
+  .note { color: var(--muted); font-size: 14px; margin: 4px 0 20px; }
+  .assure { display: flex; align-items: flex-start; gap: 8px; color: var(--muted); font-size: 14px; margin: 20px 0; }
+  .assure svg { width: 16px; height: 16px; flex: none; margin-top: 3px; }
+  .spinner {
+    display: inline-block; width: 18px; height: 18px; vertical-align: -3px; margin-right: 10px;
+    border: 3px solid var(--card); border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tech { margin-top: 32px; color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+  .tech summary { cursor: pointer; padding: 8px 0; }
+  .hidden, [hidden] { display: none !important; }
+    .status { display: flex; align-items: flex-start; font-size: 16px; font-weight: 600; margin: 0 0 20px; }
+    .status.err { color: var(--err); }
+    .status .spinner { flex: none; margin-top: 2px; }
+    .target { margin: 12px 0; }
+    .log { margin-top: 8px; padding: 10px; background: var(--card); border-radius: 8px; white-space: pre-wrap; min-height: 40px; }
+    .log .ok { color: var(--ok); }
+    .log .err { color: var(--err); }
+    .log .warn { color: #e0a64a; }
   </style>
 </head>
 <body>
-  <h1>FamilyFrame TV — Google OAuth</h1>
-  <p class="sub" id="intro-photos">
-    Войдите в Google и отметьте фотографии, которые хотите показать на телевизоре.
-    Приложение получит только отмеченные снимки и не хранит вход в Google: доступ действует
-    лишь на время этой загрузки. Телефон и телевизор должны быть в одной Wi-Fi.
-    Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
-  </p>
-  <p class="sub" id="intro-drive" hidden>
-    Войдите в Google и разрешите приложению читать файлы вашего Google Диска — так телевизор
-    сможет показывать фотографии из ваших папок. Приложение ничего не меняет и не удаляет на Диске.
-    Телефон и телевизор должны быть в одной Wi-Fi.
-    Если браузер спросит про доступ к устройствам в локальной сети — нажмите «Разрешить».
-  </p>
+<div class="wrap">
+  <div class="brand">
+    <svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="#3b6cf6"/><rect x="7" y="9" width="22" height="18" rx="2.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="23" cy="15" r="2" fill="#fff"/><path d="M9 25l6-7 4 4.5 3-3L27 25z" fill="#fff"/></svg>
+    <span>FamilyFrame TV</span>
+  </div>
+  <h1>Вход в Google</h1>
+  <p class="lead" id="intro-photos">Войдите в свой аккаунт Google — телевизор сможет показывать фото, которые вы отметите в Google Фото.</p>
+  <p class="lead" id="intro-drive" hidden>Войдите в свой аккаунт Google — телевизор сможет показывать фото из вашего Google Диска.</p>
 
   <p class="status" id="status" hidden></p>
 
-  <div id="target" class="target" hidden>Цель: <span id="target-url"></span></div>
-
   <div id="buttons"></div>
+  <p class="note" id="lan-note" hidden>Браузер может спросить о доступе к устройствам в локальной сети — нажмите «Разрешить»: так телефон передаст вход телевизору. Телефон и телевизор должны быть в одной Wi-Fi.</p>
 
-  <div id="log" class="log">Готов.</div>
+  <div class="assure"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="#aab1c3"/><path d="M5 7V5a3 3 0 016 0v2" fill="none" stroke="#aab1c3" stroke-width="1.5"/></svg><span>Телевизор только показывает ваши фото — ничего не меняет и не удаляет.</span></div>
+
+  <details class="tech">
+    <summary>Подробности</summary>
+    <div id="target" class="target" hidden>Цель: <span id="target-url"></span></div>
+    <div id="log" class="log">Готов.</div>
+  </details>
+</div>
 
   <script>
     'use strict';
@@ -105,10 +105,28 @@
 
     function addButton(text, handler) {
       const b = document.createElement('button');
+      b.className = 'btn';
+      document.getElementById('lan-note').hidden = false;
       b.textContent = text;
       b.addEventListener('click', handler);
       buttonsEl.appendChild(b);
       return b;
+    }
+
+    // Понятная фраза для человека: kind = progress | err. Технические детали остаются в логе.
+    function setStatus(kind, text) {
+      const el = document.getElementById('status');
+      el.className = 'status' + (kind === 'progress' ? '' : ' ' + kind);
+      el.textContent = '';
+      if (kind === 'progress') {
+        const sp = document.createElement('span');
+        sp.className = 'spinner';
+        el.appendChild(sp);
+      }
+      const t = document.createElement('span');
+      t.textContent = text;
+      el.appendChild(t);
+      el.hidden = false;
     }
 
     function showTarget(text) {
@@ -150,6 +168,7 @@
       if (p.get('error_description')) m += ` (${p.get('error_description')})`;
       log(m, 'err');
       const s = decodeState();
+      if (!s) setStatus('err', 'Google не завершил вход. Откройте страницу заново через QR на телевизоре.');
       if (s) {
         history.replaceState(null, '', location.pathname);
         location.replace(tvUrl(s, `error=${encodeURIComponent(p.get('error'))}`));
@@ -163,21 +182,20 @@
       const s = decodeState();
       if (!s) {
         log('Неверный state — откройте страницу заново через QR', 'err');
+        setStatus('err', 'Ссылка устарела или повреждена. Откройте страницу заново через QR на телевизоре.');
       } else {
         // убрать код из адресной строки
         history.replaceState(null, '', location.pathname);
         document.getElementById('intro-photos').hidden = true;
         document.getElementById('intro-drive').hidden = true;
-        const statusEl = document.getElementById('status');
-        statusEl.textContent = 'Передаю на телевизор… Не закрывайте страницу.';
-        statusEl.hidden = false;
+        setStatus('progress', 'Передаю на телевизор…');
         const go = () => location.replace(tvUrl(s, `code=${encodeURIComponent(code)}`));
         log('Передаю код телевизору…', 'ok');
         setTimeout(() => {
-          statusEl.textContent = 'Телевизор не ответил.';
+          setStatus('err', 'Не получилось передать вход телевизору. Проверьте, что телефон и телевизор в одной Wi-Fi, и нажмите «Попробовать ещё раз».');
           showTarget(`http://${s.ip}:${s.port}/oauth`);
           log(HINTS, 'warn');
-          addButton('Передать на ТВ ещё раз', () => {
+          addButton('Попробовать ещё раз', () => {
             log('→ Передаю код телевизору…');
             go();
           });
@@ -193,9 +211,10 @@
       const st = p.get('st');
       if (!ip || !port || !cid || !cc || !st) {
         log('Откройте страницу через QR на телевизоре', 'err');
+        setStatus('err', 'Откройте эту страницу через QR-код на телевизоре.');
       } else {
         showTarget(`http://${ip}:${port}/oauth`);
-        addButton('Войти в Google', () => {
+        addButton('Войти через Google', () => {
           const q = new URLSearchParams({
             client_id: cid,
             redirect_uri: REDIRECT_URI,
